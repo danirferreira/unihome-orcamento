@@ -1485,6 +1485,10 @@ var ENXOVAL_ORIGINAL=[
 var UI_STATE={"sliderPct": 20, "ignoreObra": true, "collapsedSections": ["obra"]};
 // DATA:UI:END
 
+// DATA:FIREBASE:START
+var FIREBASE_URL="https://unihome-10393-default-rtdb.firebaseio.com";
+// DATA:FIREBASE:END
+
 // ── AMBIENTES ─────────────────────────────────────────────────────────────────
 var AMBIENTES_LIST=['Dormitório','Cozinha','Banheiro','Sala / Living','Mobiliário','Revestimentos','Elétrica','Hidráulica','Climatização','Estrutura','Esquadrias','Acabamentos','Geral'];
 var AMB_COLORS={
@@ -2592,7 +2596,7 @@ function clearEditLS(){
 function saveToFile(){
   var btn=document.getElementById('btn-save');
   var payload=collectPayload();
-  // ── Modo local (server.py rodando) ──
+  // ── Modo local (server.py) ──
   if(location.hostname==='localhost'||location.hostname==='127.0.0.1'){
     btn.disabled=true;btn.textContent='Salvando…';
     fetch('/api/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
@@ -2608,7 +2612,17 @@ function saveToFile(){
       .finally(function(){btn.disabled=false;btn.textContent='💾 Salvar';});
     return;
   }
-  // ── Modo hospedado (GitHub Pages / Netlify etc.) — baixar JSON ──
+  // ── Modo Firebase (banco de dados compartilhado) ──
+  if(FIREBASE_URL){
+    btn.disabled=true;btn.textContent='Salvando…';
+    fetch(FIREBASE_URL+'/dados.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+      .then(function(r){if(!r.ok) throw new Error('HTTP '+r.status); return r.json();})
+      .then(function(){clearEditLS();showToast('Dados salvos na nuvem ✓');})
+      .catch(function(e){showToast('Erro ao salvar na nuvem: '+e.message);})
+      .finally(function(){btn.disabled=false;btn.textContent='💾 Salvar';});
+    return;
+  }
+  // ── Fallback: baixar JSON ──
   downloadJSON(payload);
   clearEditLS();
   showToast('Backup baixado! Guarde o arquivo .json para restaurar depois.');
@@ -2663,6 +2677,30 @@ function showToast(msg){
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
+function applyCloudData(data){
+  if(!data||!data.obra||!data.enxoval) return false;
+  state.obra=data.obra;
+  state.enxoval=data.enxoval;
+  _origIdSet={};
+  [].concat(state.obra,state.enxoval).forEach(function(i){_origIdSet[i.id]=true;});
+  if(data.uiState){
+    var ui=data.uiState;
+    document.getElementById('slider-camas').value=ui.sliderPct||100;
+    document.getElementById('toggle-ignore-obra').checked=!!ui.ignoreObra;
+    ignoreObra=!!ui.ignoreObra;
+    openSection('obra');openSection('enxoval');
+    (ui.collapsedSections||[]).forEach(function(id){toggleSection(id);});
+  }
+  return true;
+}
+function loadFromFirebase(callback){
+  if(!FIREBASE_URL){callback(false);return;}
+  fetch(FIREBASE_URL+'/dados.json')
+    .then(function(r){if(!r.ok) throw new Error('HTTP '+r.status); return r.json();})
+    .then(function(data){callback(applyCloudData(data));})
+    .catch(function(){callback(false);});
+}
+
 document.addEventListener('DOMContentLoaded',function(){
   initState();
   loadStructureFromLS();
@@ -2730,7 +2768,7 @@ document.addEventListener('DOMContentLoaded',function(){
     }
   });
 
-  // Apply saved UI state from file
+  // Apply saved UI state from file (local defaults)
   document.getElementById('slider-camas').value=UI_STATE.sliderPct;
   document.getElementById('toggle-ignore-obra').checked=UI_STATE.ignoreObra;
   ignoreObra=UI_STATE.ignoreObra;
@@ -2738,6 +2776,14 @@ document.addEventListener('DOMContentLoaded',function(){
   openSection('enxoval');
   UI_STATE.collapsedSections.forEach(function(id){toggleSection(id);});
   update();
+  // Load shared data from Firebase (overrides local state when available)
+  if(FIREBASE_URL){
+    showToast('Carregando dados da nuvem…');
+    loadFromFirebase(function(loaded){
+      if(loaded){update();showToast('Dados carregados da nuvem ✓');}
+      else showToast('Usando dados locais (nuvem indisponível)');
+    });
+  }
 });
 </script>
 </body>
