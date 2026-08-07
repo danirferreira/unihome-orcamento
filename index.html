@@ -113,6 +113,8 @@ td.right{text-align:right;font-variant-numeric:tabular-nums}
 .badge-amb{display:inline-flex;align-items:center;font-size:.62rem;font-weight:700;border-radius:4px;padding:2px 7px;margin-left:5px;vertical-align:middle;cursor:pointer;transition:filter .15s;white-space:nowrap;border:1px solid transparent}
 .badge-amb:hover{filter:brightness(.9)}
 .badge-amb-empty{background:#f3f4f6!important;color:#9ca3af!important;border:1px dashed #d1d5db!important}
+.badge-global{display:inline-block;font-size:.62rem;font-weight:700;text-transform:uppercase;background:#ede9fe;color:#5b21b6;border:1px solid #ddd6fe;border-radius:4px;padding:2px 5px;margin-left:5px;vertical-align:middle}
+.qty-na{color:#9ca3af;font-style:italic}
 .amb-select{font-size:.78rem;border:1.5px solid var(--navy);border-radius:5px;padding:3px 6px;background:#fff;cursor:pointer;max-width:140px;margin-left:5px;vertical-align:middle}
 
 /* GRÁFICO POR AMBIENTE */
@@ -163,6 +165,8 @@ td.right{text-align:right;font-variant-numeric:tabular-nums}
 .btn-move-enxoval{background:#fef3c7;color:#92400e}.btn-move-enxoval:hover{background:#fde68a}
 .btn-move-obra{background:#dbeafe;color:#1e40af}.btn-move-obra:hover{background:#bfdbfe}
 .btn-del{background:#fee2e2;color:#b91c1c}.btn-del:hover{background:#fecaca}
+.btn-idx-on{background:#e0e7ff;color:#3730a3}.btn-idx-on:hover{background:#c7d2fe}
+.btn-idx-off{background:#ede9fe;color:#5b21b6}.btn-idx-off:hover{background:#ddd6fe}
 
 /* FAB */
 .fab{position:fixed;bottom:32px;right:32px;width:54px;height:54px;border-radius:50%;background:var(--navy);color:var(--white);font-size:1.5rem;border:none;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;transition:transform .15s,background .15s;z-index:100}
@@ -424,7 +428,7 @@ mark.hl{background:#fde68a;color:#1f2937;border-radius:2px;padding:0 1px;font-st
             <th class="right">Preço Unit.</th>
             <th class="right">Preço Total</th>
             <th>Fonte / Fornecedor</th>
-            <th style="min-width:180px;text-align:right">Ações</th>
+            <th style="min-width:260px;text-align:right">Ações</th>
           </tr></thead>
           <tbody id="tbody-obra"></tbody>
           <tfoot id="tfoot-obra"></tfoot>
@@ -432,6 +436,7 @@ mark.hl{background:#fde68a;color:#1f2937;border-radius:2px;padding:0 1px;font-st
       </div>
       <div class="footnote"><ul>
         <li><strong>VB (Verba Global):</strong> valor contratual de referência — requer cotação formal.</li>
+        <li><strong>Global:</strong> item não indexado — o preço <strong>não</strong> é multiplicado pelos 194 apartamentos (ex.: sistema de segurança, portas de shaft, áreas comuns). Use o botão <strong>×194 / 🏢 Global</strong> na coluna Ações para alternar.</li>
         <li>Valores de referência da planilha do Estúdio Modelo 203 — sem pesquisa de mercado para OBRA.</li>
       </ul></div>
     </div>
@@ -468,7 +473,7 @@ mark.hl{background:#fde68a;color:#1f2937;border-radius:2px;padding:0 1px;font-st
             <th class="right">Preço Unit.</th>
             <th class="right">Preço Total</th>
             <th>Fonte / Fornecedor</th>
-            <th style="min-width:180px;text-align:right">Ações</th>
+            <th style="min-width:260px;text-align:right">Ações</th>
           </tr></thead>
           <tbody id="tbody-enxoval"></tbody>
           <tfoot id="tfoot-enxoval"></tfoot>
@@ -476,6 +481,7 @@ mark.hl{background:#fde68a;color:#1f2937;border-radius:2px;padding:0 1px;font-st
       </div>
       <div class="footnote"><ul>
         <li><strong>🛏 casal / solteiro:</strong> quantidade varia conforme mix de configuração de camas (slider acima). casal = 1 cama casal · 2sol. = 2 camas solteiro.</li>
+        <li><strong>Global:</strong> item não indexado — o preço <strong>não</strong> é multiplicado pelos 194 apartamentos. Use o botão <strong>×194 / 🏢 Global</strong> na coluna Ações para alternar.</li>
         <li>Preços pesquisados em Abril/2026 — Magazine Luiza, Americanas, Casas Bahia.</li>
         <li>Preços sem frete e sem desconto por volume — compras em escala podem gerar savings adicionais.</li>
       </ul></div>
@@ -518,7 +524,7 @@ mark.hl{background:#fde68a;color:#1f2937;border-radius:2px;padding:0 1px;font-st
       </div>
       <div class="form-row-2">
         <div class="form-row">
-          <label>Qtd por Apto — 1 Cama Casal *</label>
+          <label id="label-qty">Qtd por Apto — 1 Cama Casal *</label>
           <input type="number" id="form-qty" placeholder="1" min="0.01" step="0.01" value="1" required/>
         </div>
         <div class="form-row">
@@ -536,6 +542,18 @@ mark.hl{background:#fde68a;color:#1f2937;border-radius:2px;padding:0 1px;font-st
         <div class="form-row" id="qty-dupla-row" style="display:none">
           <label>Qtd por Apto — 2 Camas Solteiro</label>
           <input type="number" id="form-qty-dupla" placeholder="Ex: 2" min="0" step="0.01"/>
+        </div>
+      </div>
+      <div class="form-row form-check-row">
+        <label class="check-label">
+          <input type="checkbox" id="form-global" onchange="toggleGlobalField()"/>
+          Não indexar pelo total de apartamentos — quantidade única do empreendimento
+        </label>
+      </div>
+      <div class="form-row" id="global-hint" style="display:none;margin-top:-6px">
+        <div style="font-size:.74rem;color:var(--gray-text);line-height:1.5;background:#f5f3ff;border-left:3px solid #8b5cf6;padding:7px 10px;border-radius:5px">
+          O preço será multiplicado apenas pela quantidade informada, <strong>sem multiplicar pelos 194 apartamentos</strong>.
+          Use para itens que não se aplicam por unidade — sistema de segurança, portas de shaft, portaria, áreas comuns.
         </div>
       </div>
       <div class="form-row form-check-row">
@@ -1533,13 +1551,18 @@ function calcQty(item,pct){
   return item.qtyBase+(item.qtyDupla-item.qtyBase)*(pct/100);
 }
 
+// Itens "globais" (isGlobal) não são indexados pelo nº de apartamentos:
+// a quantidade informada já é a do empreendimento inteiro (ex.: sistema de
+// segurança, portas de shaft). Multiplicador = 1 em vez de CONFIG.totalApts.
+function itemMult(item){return item.isGlobal?1:CONFIG.totalApts;}
+
 function calcTotals(pct){
-  var N=CONFIG.totalApts;
   function enrich(list){
     return list.map(function(item){
       var qty=calcQty(item,pct);
-      var total=qty*item.precoUnit*N;
-      return Object.assign({},item,{qtyEfetiva:qty,totalGeral:total});
+      var mult=itemMult(item);
+      var total=qty*item.precoUnit*mult;
+      return Object.assign({},item,{qtyEfetiva:qty,qtyTotal:qty*mult,totalGeral:total});
     });
   }
   var obraItems=enrich(state.obra);
@@ -1575,6 +1598,30 @@ function deleteItem(id,fromBlock){
   saveStructureLS();
   update();
   showToast('"'+nome+'" removido');
+}
+
+// ── INDEXAÇÃO POR APARTAMENTO ────────────────────────────────────────────────
+// Alterna entre item indexado (preço × qtd × 194 aptos) e item global
+// (preço × qtd, uma única vez no empreendimento). A quantidade digitada é
+// preservada — só o multiplicador muda.
+function toggleGlobalItem(id,block){
+  var item=state[block].find(function(i){return i.id===id;});
+  if(!item) return;
+  var makeGlobal=!item.isGlobal;
+  item.isGlobal=makeGlobal;
+  saveItemEditsLS(id,'isGlobal',makeGlobal);
+  if(makeGlobal&&item.isBedRelated){
+    // Mix de camas não faz sentido para item que não é por apartamento
+    item.isBedRelated=false;
+    item.qtyDupla=item.qtyBase;
+    saveItemEditsLS(id,'isBedRelated',false);
+    saveItemEditsLS(id,'qtyDupla',item.qtyBase);
+  }
+  saveStructureLS();
+  update();
+  showToast(makeGlobal
+    ?'"'+item.nome+'" agora é global — não multiplica pelos '+CONFIG.totalApts+' aptos'
+    :'"'+item.nome+'" voltou a ser indexado pelos '+CONFIG.totalApts+' aptos');
 }
 
 // ── BUSCA ─────────────────────────────────────────────────────────────────────
@@ -1658,6 +1705,7 @@ function renderTable(items,sectionId){
   }
   tbody.innerHTML=visible.map(function(item){
     var vbBadge=item.isVB?'<span class="badge-vb">VB</span>':'';
+    var globalBadge=item.isGlobal?'<span class="badge-global" title="Item global — quantidade única do empreendimento, não multiplicada pelos '+CONFIG.totalApts+' apartamentos">Global</span>':'';
     var amb=item.ambiente||'';
     var ambC=ambColor(amb);
     var ambBadge=amb
@@ -1676,6 +1724,13 @@ function renderTable(items,sectionId){
       ?'<span style="font-size:.78rem;color:#6b7280">casal:</span>'+fmtN(item.qtyBase)
         +' <span style="font-size:.78rem;color:#5b21b6">2sol.:</span>'+fmtN(item.qtyDupla)
       :(item.qtyBase%1===0?fmtN(item.qtyBase):item.qtyBase.toFixed(2));
+    // Item global não tem "qtd por apto" — a quantidade vive só na coluna Qtd Total
+    var qtyAptoCell=item.isGlobal
+      ?'<td class="right qty-na" title="Item global — não indexado por apartamento">—</td>'
+      :'<td class="right edit-cell" onclick="startEditQty(this,\''+item.id+'\',\''+sectionId+'\')" title="Clique para editar quantidade">'+qtyDisplay+'</td>';
+    var idxBtn=item.isGlobal
+      ?'<button class="btn-action btn-idx-off" onclick="toggleGlobalItem(\''+item.id+'\',\''+sectionId+'\')" title="Voltar a indexar: multiplicar pelos '+CONFIG.totalApts+' apartamentos">🏢 Global</button>'
+      :'<button class="btn-action btn-idx-on" onclick="toggleGlobalItem(\''+item.id+'\',\''+sectionId+'\')" title="Deixar de indexar: não multiplicar pelos '+CONFIG.totalApts+' apartamentos">×'+CONFIG.totalApts+'</button>';
     // subitems: indica se algum subitem bate com a busca
     var subMatchNote='';
     if(q&&item.subitems&&item.subitems.some(function(s){return (s.nome||'').toLowerCase().indexOf(q)!==-1;})){
@@ -1686,14 +1741,14 @@ function renderTable(items,sectionId){
       :'<span class="drill-indicator drill-empty" onclick="event.stopPropagation();openDrillDown(\''+item.id+'\',\''+sectionId+'\')">+ detalhar composição</span>';
     return '<tr>'+
       fotoCel+
-      '<td><div class="item-nome"><span class="edit-cell" onclick="event.stopPropagation();startEditNome(this,\''+item.id+'\',\''+sectionId+'\')" title="Clique para editar nome">'+hlText(item.nome,q)+'</span>'+vbBadge+ambBadge+'</div>'+(item.nota?'<div class="item-note">'+hlText(item.nota,q)+'</div>':'')+drillBtn+'</td>'+
+      '<td><div class="item-nome"><span class="edit-cell" onclick="event.stopPropagation();startEditNome(this,\''+item.id+'\',\''+sectionId+'\')" title="Clique para editar nome">'+hlText(item.nome,q)+'</span>'+vbBadge+globalBadge+ambBadge+'</div>'+(item.nota?'<div class="item-note">'+hlText(item.nota,q)+'</div>':'')+drillBtn+'</td>'+
       '<td>'+item.unid+'</td>'+
-      '<td class="right edit-cell" onclick="startEditQty(this,\''+item.id+'\',\''+sectionId+'\')" title="Clique para editar quantidade">'+qtyDisplay+'</td>'+
-      '<td class="right edit-cell" onclick="event.stopPropagation();startEditQtyTotal(this,\''+item.id+'\',\''+sectionId+'\')" title="Clique para editar quantidade total">'+fmtN(item.qtyEfetiva*CONFIG.totalApts)+'</td>'+
+      qtyAptoCell+
+      '<td class="right edit-cell" onclick="event.stopPropagation();startEditQtyTotal(this,\''+item.id+'\',\''+sectionId+'\')" title="Clique para editar quantidade total">'+fmtN(item.qtyTotal)+'</td>'+
       '<td class="right price-unit edit-cell" onclick="startEditPrice(this,\''+item.id+'\',\''+sectionId+'\')" title="Clique para editar preço">'+fmt(item.precoUnit)+'</td>'+
       '<td class="right price-total">'+fmt(item.totalGeral)+'</td>'+
       '<td class="edit-cell" onclick="startEditFonte(this,\''+item.id+'\',\''+sectionId+'\')" title="Clique para editar fornecedor"><span class="fonte-link">'+hlText(item.fonte,q)+'</span></td>'+
-      '<td class="td-actions">'+moveBtn+
+      '<td class="td-actions">'+idxBtn+moveBtn+
         '<button class="btn-action btn-del" onclick="deleteItem(\''+item.id+'\',\''+sectionId+'\')" title="Remover item">✕ Excluir</button>'+
       '</td>'+
     '</tr>';
@@ -1709,7 +1764,7 @@ function saveItemEditsLS(id,field,value){
   try{localStorage.setItem(key,JSON.stringify(edits));}catch(e){}
 }
 function loadItemEditsFromLS(){
-  var FIELDS=['nome','precoUnit','qtyBase','qtyDupla','fonte','subitems'];
+  var FIELDS=['nome','precoUnit','qtyBase','qtyDupla','fonte','subitems','isGlobal','isBedRelated'];
   ['obra','enxoval'].forEach(function(block){
     state[block].forEach(function(item){
       var edits={};
@@ -1818,6 +1873,12 @@ function startEditFonte(td,id,block){
 function startEditQty(td,id,block){
   var item=state[block].find(function(i){return i.id===id;});
   if(!item) return;
+  // Item global não tem quantidade por apartamento — edita direto o total
+  if(item.isGlobal){
+    var totTd=td.nextElementSibling;
+    if(totTd) startEditQtyTotal(totTd,id,block);
+    return;
+  }
   var origBase=item.qtyBase,origDupla=item.qtyDupla;
   if(!item.isBedRelated){
     td.innerHTML='<input type="number" class="edit-input" value="'+origBase+'" step="0.01" min="0.01" style="width:80px"/>';
@@ -1876,10 +1937,11 @@ function startEditQtyTotal(td,id,block){
     return;
   }
   var origBase=item.qtyBase,origDupla=item.qtyDupla;
-  var N=CONFIG.totalApts;
+  var N=itemMult(item);
   var pct=parseInt(document.getElementById('slider-camas').value);
   var currentTotal=Math.round(calcQty(item,pct)*N*100)/100;
-  td.innerHTML='<input type="number" class="edit-input" value="'+currentTotal+'" step="1" min="1" style="width:90px" title="Qtd total nos '+N+' apartamentos"/>';
+  var totalHint=item.isGlobal?'Qtd total do empreendimento (item não indexado)':'Qtd total nos '+N+' apartamentos';
+  td.innerHTML='<input type="number" class="edit-input" value="'+currentTotal+'" step="1" min="1" style="width:90px" title="'+totalHint+'"/>';
   var inp=td.querySelector('input');
   inp.focus();inp.select();
   inp.addEventListener('click',function(e){e.stopPropagation();});
@@ -2007,14 +2069,27 @@ function openAddModal(defaultBlock){
   document.getElementById('form-bloco').value=defaultBlock||'enxoval';
   document.getElementById('form-unid').value='un';
   document.getElementById('form-qty').value='1';
-  toggleBedFields();
+  toggleGlobalField();
   document.getElementById('modal-add').classList.add('open');
   setTimeout(function(){document.getElementById('form-nome').focus();},80);
 }
 function closeModal(){document.getElementById('modal-add').classList.remove('open');}
 function toggleBedFields(){
   var isEnxoval=document.getElementById('form-bloco').value==='enxoval';
-  document.getElementById('bed-fields').style.display=isEnxoval?'':'none';
+  var g=document.getElementById('form-global');
+  var isGlobal=g&&g.checked;
+  // Item global não varia por configuração de cama — o mix não se aplica
+  document.getElementById('bed-fields').style.display=(isEnxoval&&!isGlobal)?'':'none';
+}
+function toggleGlobalField(){
+  var isGlobal=document.getElementById('form-global').checked;
+  var lbl=document.getElementById('label-qty');
+  if(lbl) lbl.textContent=isGlobal?'Quantidade Total (empreendimento) *':'Qtd por Apto — 1 Cama Casal *';
+  var hint=document.getElementById('global-hint');
+  if(hint) hint.style.display=isGlobal?'':'none';
+  var bed=document.getElementById('form-bed');
+  if(isGlobal&&bed&&bed.checked){bed.checked=false;toggleBedQty();}
+  toggleBedFields();
 }
 function toggleBedQty(){
   var checked=document.getElementById('form-bed').checked;
@@ -2030,16 +2105,17 @@ function submitNewItem(e){
   var fonte=document.getElementById('form-fonte').value.trim()||'—';
   var nota=document.getElementById('form-nota').value.trim();
   var isVB=document.getElementById('form-vb').checked;
-  var isBedRelated=bloco==='enxoval'&&document.getElementById('form-bed').checked;
+  var isGlobal=document.getElementById('form-global').checked;
+  var isBedRelated=!isGlobal&&bloco==='enxoval'&&document.getElementById('form-bed').checked;
   var qdRaw=parseFloat(document.getElementById('form-qty-dupla').value);
   var qtyDupla=isBedRelated&&!isNaN(qdRaw)?qdRaw:qtyBase;
   if(!nome||preco<=0){alert('Preencha nome e preço.');return;}
-  state[bloco].push({id:_newId(bloco[0]),nome:nome,unid:unid,qtyBase:qtyBase,qtyDupla:qtyDupla,precoUnit:preco,isBedRelated:isBedRelated,isVB:isVB,fonte:fonte,nota:nota});
+  state[bloco].push({id:_newId(bloco[0]),nome:nome,unid:unid,qtyBase:qtyBase,qtyDupla:qtyDupla,precoUnit:preco,isBedRelated:isBedRelated,isGlobal:isGlobal,isVB:isVB,fonte:fonte,nota:nota});
   saveStructureLS();
   closeModal();
   update();
   openSection(bloco);
-  showToast('"'+nome+'" adicionado ao bloco '+bloco.toUpperCase());
+  showToast('"'+nome+'" adicionado ao bloco '+bloco.toUpperCase()+(isGlobal?' (global — sem indexação)':''));
 }
 
 // ── DRILL-DOWN (composição de kit) ───────────────────────────────────────────
@@ -2099,8 +2175,9 @@ function renderDrillTable(){
       '<td><button class="btn-action btn-del" onclick="removeSubitem('+idx+')" title="Remover">✕</button></td>'+
     '</tr>';
   }).join('')||'<tr><td colspan="5" style="text-align:center;padding:20px;color:#9ca3af;font-style:italic">Nenhum componente. Clique em "+ Adicionar componente".</td></tr>';
+  var kitLabel=item.isGlobal?'TOTAL DO KIT (por unidade do item)':'TOTAL DO KIT (por apartamento)';
   document.getElementById('drill-tfoot').innerHTML=grand>0
-    ?'<tr><td colspan="3" style="text-align:right;font-weight:700;font-size:.85rem">TOTAL DO KIT (por apartamento)</td><td class="right price-total">'+fmt(grand)+'</td><td></td></tr>'
+    ?'<tr><td colspan="3" style="text-align:right;font-weight:700;font-size:.85rem">'+kitLabel+'</td><td class="right price-total">'+fmt(grand)+'</td><td></td></tr>'
     :'';
 }
 
@@ -2306,11 +2383,13 @@ function printFornecedor(){
   var fmtN2=function(v){return v.toLocaleString('pt-BR',{maximumFractionDigits:1});};
 
   var rows=r.enxovalItems.map(function(item,i){
-    var qtdApto=item.isBedRelated
-      ?item.qtyBase+' (casal) / '+item.qtyDupla+' (solteiro)'
-      :fmtN2(item.qtyEfetiva);
-    var qtdTotal=Math.round(item.qtyEfetiva*N).toLocaleString('pt-BR');
-    var desc=item.nome+(item.nota?'<br><span style="font-size:9.5px;color:#6b7280">'+item.nota+'</span>':'');
+    var qtdApto=item.isGlobal
+      ?'— (global)'
+      :(item.isBedRelated
+        ?item.qtyBase+' (casal) / '+item.qtyDupla+' (solteiro)'
+        :fmtN2(item.qtyEfetiva));
+    var qtdTotal=Math.round(item.qtyTotal).toLocaleString('pt-BR');
+    var desc=item.nome+(item.isGlobal?' <span style="font-size:9px;color:#5b21b6;font-weight:700">[GLOBAL]</span>':'')+(item.nota?'<br><span style="font-size:9.5px;color:#6b7280">'+item.nota+'</span>':'');
     var bg=i%2===0?'#fff':'#f9fafb';
     return '<tr style="background:'+bg+'">'+
       '<td style="padding:6px 8px;text-align:center;color:#9ca3af;font-size:10px">'+(i+1)+'</td>'+
@@ -2406,8 +2485,8 @@ function printExecutivo(){
     var pctItem=(item.totalGeral/r.totalEnxoval*100).toFixed(1);
     return '<tr style="background:'+(i%2?'#f9fafb':'#fff')+'">'+
       '<td style="padding:4px 6px;color:#9ca3af;text-align:center">'+(i+1)+'</td>'+
-      '<td style="padding:4px 6px;font-weight:600">'+item.nome+'</td>'+
-      '<td style="padding:4px 6px;text-align:center">'+Math.round(item.qtyEfetiva*N).toLocaleString('pt-BR')+'</td>'+
+      '<td style="padding:4px 6px;font-weight:600">'+item.nome+(item.isGlobal?' <span style="font-size:8.5px;color:#5b21b6">[global]</span>':'')+'</td>'+
+      '<td style="padding:4px 6px;text-align:center">'+Math.round(item.qtyTotal).toLocaleString('pt-BR')+'</td>'+
       '<td style="padding:4px 6px;text-align:right">'+fmtR(item.precoUnit)+'</td>'+
       '<td style="padding:4px 6px;text-align:right;font-weight:700">'+fmtR(item.totalGeral)+'</td>'+
       '<td style="padding:4px 6px;text-align:right;color:#6b7280">'+pctItem+'%</td>'+
@@ -2570,7 +2649,7 @@ function updateSortButtons(block){
 }
 
 // ── SALVAR NO ARQUIVO ────────────────────────────────────────────────────────
-var SAVE_FIELDS=['id','nome','unid','qtyBase','qtyDupla','precoUnit','isBedRelated','isVB','fonte','nota','imgUrl','ambiente','subitems'];
+var SAVE_FIELDS=['id','nome','unid','qtyBase','qtyDupla','precoUnit','isBedRelated','isGlobal','isVB','fonte','nota','imgUrl','ambiente','subitems'];
 function cleanItemForSave(item,stripBase64){
   var out={};
   SAVE_FIELDS.forEach(function(f){if(item[f]!==undefined) out[f]=item[f];});
