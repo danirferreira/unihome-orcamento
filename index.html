@@ -2571,20 +2571,21 @@ function updateSortButtons(block){
 
 // ── SALVAR NO ARQUIVO ────────────────────────────────────────────────────────
 var SAVE_FIELDS=['id','nome','unid','qtyBase','qtyDupla','precoUnit','isBedRelated','isVB','fonte','nota','imgUrl','ambiente','subitems'];
-function cleanItemForSave(item){
+function cleanItemForSave(item,stripBase64){
   var out={};
   SAVE_FIELDS.forEach(function(f){if(item[f]!==undefined) out[f]=item[f];});
+  if(stripBase64 && out.imgUrl && typeof out.imgUrl==='string' && out.imgUrl.startsWith('data:')) out.imgUrl='';
   return out;
 }
-function collectPayload(){
+function collectPayload(stripBase64){
   var pct=parseInt(document.getElementById('slider-camas').value);
   var igO=document.getElementById('toggle-ignore-obra').checked;
   var collapsed=[];
   if(document.getElementById('body-obra').style.maxHeight==='0px') collapsed.push('obra');
   if(document.getElementById('body-enxoval').style.maxHeight==='0px') collapsed.push('enxoval');
   return{
-    obra:state.obra.map(cleanItemForSave),
-    enxoval:state.enxoval.map(cleanItemForSave),
+    obra:state.obra.map(function(i){return cleanItemForSave(i,stripBase64);}),
+    enxoval:state.enxoval.map(function(i){return cleanItemForSave(i,stripBase64);}),
     uiState:{sliderPct:pct,ignoreObra:igO,collapsedSections:collapsed}
   };
 }
@@ -2615,7 +2616,8 @@ function saveToFile(){
   // ── Modo Firebase (banco de dados compartilhado) ──
   if(FIREBASE_URL){
     btn.disabled=true;btn.textContent='Salvando…';
-    fetch(FIREBASE_URL+'/dados.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    var fbPayload=collectPayload(true); // strip base64 images — too large for Firebase
+    fetch(FIREBASE_URL+'/dados.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(fbPayload)})
       .then(function(r){if(!r.ok) throw new Error('HTTP '+r.status); return r.json();})
       .then(function(){clearEditLS();showToast('Dados salvos na nuvem ✓');})
       .catch(function(e){showToast('Erro ao salvar na nuvem: '+e.message);})
